@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { EventsModule } from './events/events.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
       }),
     }),
     EventsModule,
+    JobsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
