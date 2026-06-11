@@ -6,6 +6,7 @@ import { EventsModule } from './events/events.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobsModule } from './jobs/jobs.module';
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { JobsModule } from './jobs/jobs.module';
     }),
     EventsModule,
     JobsModule,
+    WorkerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
