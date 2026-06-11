@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-export interface CreateJobdto {
+export interface CreateJobDto {
   type: string;
   payload: Record<string, unknown>;
   priority?: number;
@@ -23,7 +23,7 @@ export class JobsService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async create(dto: CreateJobdto): Promise<Job> {
+  async create(dto: CreateJobDto): Promise<Job> {
     const job = this.jobRepo.create({
       type: dto.type,
       payload: dto.payload,
