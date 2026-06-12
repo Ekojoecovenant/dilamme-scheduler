@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Job, JobInterval, JobPriority, JobStatus } from './job.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -16,19 +16,16 @@ export interface CreateJobDto {
 
 @Injectable()
 export class JobsService {
-  private schedulerService: SchedulerService | null = null;
-
   constructor(
     @InjectRepository(Job)
     private readonly jobRepo: Repository<Job>,
+    
+    @Inject(forwardRef(() => SchedulerService))
+    private readonly schedulerService: SchedulerService,
 
     @InjectPinoLogger(JobsService.name)
     private readonly logger: PinoLogger,
   ) {}
-
-  setScheduler(scheduler: SchedulerService) {
-    this.schedulerService = scheduler;
-  }
 
   async create(dto: CreateJobDto): Promise<Job> {
     const job = this.jobRepo.create({
@@ -43,7 +40,6 @@ export class JobsService {
     });
 
     const saved = await this.jobRepo.save(job);
-    this.schedulerService?.enqueue(saved);
 
     this.logger.info(
       {
@@ -54,6 +50,9 @@ export class JobsService {
       },
       'job created',
     );
+
+    // enqueue into heap immediately after creation
+    this.schedulerService.enqueue(saved);
 
     return saved;
   }
@@ -86,6 +85,9 @@ export class JobsService {
         'cancel requested on processing job - marking cancelled, worker will detect on next cycle',
       );
     }
+
+    // remove from heap immediately if still pending
+    this.schedulerService.removeFromHeap(id);
 
     job.status = JobStatus.CANCELLED;
     const saved = await this.jobRepo.save(job);
@@ -122,6 +124,9 @@ export class JobsService {
     job.nextRunAt = null;
 
     const saved = await this.jobRepo.save(job);
+
+    // re-enqueue into heap
+    this.schedulerService.enqueue(saved);
 
     this.logger.info(
       {

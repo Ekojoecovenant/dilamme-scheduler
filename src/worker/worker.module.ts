@@ -9,7 +9,7 @@ import { SchedulerModule } from '../scheduler/scheduler.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Job]),
-    JobsModule,
+    forwardRef(() => JobsModule),
     EventsModule,
     forwardRef(() => SchedulerModule),
   ],
