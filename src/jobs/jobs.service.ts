@@ -3,6 +3,7 @@ import { Job, JobInterval, JobPriority, JobStatus } from './job.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { SchedulerService } from '../scheduler/scheduler.service';
 
 export interface CreateJobDto {
   type: string;
@@ -15,6 +16,8 @@ export interface CreateJobDto {
 
 @Injectable()
 export class JobsService {
+  private schedulerService: SchedulerService | null = null;
+
   constructor(
     @InjectRepository(Job)
     private readonly jobRepo: Repository<Job>,
@@ -22,6 +25,10 @@ export class JobsService {
     @InjectPinoLogger(JobsService.name)
     private readonly logger: PinoLogger,
   ) {}
+
+  setScheduler(scheduler: SchedulerService) {
+    this.schedulerService = scheduler;
+  }
 
   async create(dto: CreateJobDto): Promise<Job> {
     const job = this.jobRepo.create({
@@ -36,6 +43,7 @@ export class JobsService {
     });
 
     const saved = await this.jobRepo.save(job);
+    this.schedulerService?.enqueue(saved);
 
     this.logger.info(
       {

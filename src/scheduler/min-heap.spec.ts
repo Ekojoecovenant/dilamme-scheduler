@@ -35,7 +35,7 @@ describe('MinHeap', () => {
 
     heap.remove('b');
     const remaining = [];
-    while (!heap.isEmpty()) remaining.push(heap.pop()?.id);
+    while (!heap.isEmpty()) remaining.push(heap.pop()?.id as never);
 
     expect(remaining).not.toContain('b');
     expect(remaining).toHaveLength(2);

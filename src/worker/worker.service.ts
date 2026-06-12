@@ -5,6 +5,7 @@ import { DataSource, QueryDeepPartialEntity, Repository } from 'typeorm';
 import { JobsService } from '../jobs/jobs.service';
 import { EventsService } from '../events/events.service';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { SchedulerService } from '../scheduler/scheduler.service';
 
 const POLL_INTERVAL_MS = 2000;
 const DLQ_ALERT_THRESHOLD = 10;
@@ -26,6 +27,7 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
 
     private readonly jobsService: JobsService,
     private readonly eventsService: EventsService,
+    private readonly schedulerService: SchedulerService,
     private readonly dataSource: DataSource,
 
     @InjectPinoLogger(WorkerService.name)
@@ -111,33 +113,32 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
   }
 
   private async claimNextJob(): Promise<Job | null> {
+    const job = this.schedulerService.dequeue();
+    if (!job) return null;
+
+    // verify dependencies in DB before claiming
+    const depsReady = await this.jobsService.allDependenciesCompleted(
+      job.dependencyIds,
+    );
+
+    if (!depsReady) {
+      // put it back - deps not done yet
+      this.schedulerService.enqueue(job);
+      return null;
+    }
+
+    // claim it in the DB atomically
     return this.dataSource.transaction(async (manager) => {
-      const job = await manager
-        .createQueryBuilder(Job, 'job')
-        .where('job.status = :status', { status: JobStatus.PENDING })
-        .andWhere(
-          '(job.next_run_at IS NULL OR job.next_run_at <= :now)',
-          { now: new Date() },
-        )
-        .orderBy('job.priority', 'ASC')
-        .addOrderBy('job.next_run_at', 'ASC', 'NULLS FIRST')
-        .addOrderBy('job.created_at', 'ASC')
-        .setLock('pessimistic_write')
-        .setOnLocked('skip_locked')
-        .limit(1)
-        .getOne();
+      const fresh = await manager.findOne(Job, { where: { id: job.id } });
 
-      if (!job) return null;
+      // guard: job may have been cancelled between heap pop and now
+      if (!fresh || fresh.status !== JobStatus.PENDING) {
+        return null;
+      }
 
-      // DAG check - dont clain if dependencies aren't done
-      const depsReady = await this.jobsService.allDependenciesCompleted(job.dependencyIds!);
-      if (!depsReady) return null;
-
-      job.status = JobStatus.PROCESSING;
-      job.startedAt = new Date();
-      await manager.save(job);
-
-      return job;
+      fresh.status = JobStatus.PROCESSING;
+      fresh.startedAt = new Date();
+      return manager.save(fresh);
     });
   }
 
@@ -183,7 +184,7 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
 
   private async handleFailure(job: Job, err: unknown): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
-    job.retryCount! += 1;
+    job.retryCount += 1;
 
     this.logger.warn(
       {
@@ -196,7 +197,7 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
       `job failed, attempt ${job.retryCount} of ${job.maxRetries}`,
     );
 
-    if (job.retryCount! >= job.maxRetries!) {
+    if (job.retryCount >= job.maxRetries) {
       job.status = JobStatus.FAILED;
       job.isDlq = true;
       job.errorDetails = {
@@ -228,7 +229,7 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
       await this.checkDlqThreshold();
     } else {
       // backoff with jitter: ~1s, ~5s, ~25s
-      const backoffMs = Math.pow(5, job.retryCount!) * 200 + Math.random() * 1000;
+      const backoffMs = Math.pow(5, job.retryCount) * 200 + Math.random() * 1000;
       job.status = JobStatus.PENDING;
       job.nextRunAt = new Date(Date.now() + backoffMs);
       job.errorDetails = {

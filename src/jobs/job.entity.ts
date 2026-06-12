@@ -39,51 +39,51 @@ export class Job {
     enum: JobStatus,
     default: JobStatus.PENDING,
   })
-  status?: JobStatus;
+  status!: JobStatus;
 
   @Column({ type: 'int', default: JobPriority.MEDIUM })
-  priority?: number;
+  priority!: number;
 
   @Column({ name: 'retry_count', type: 'int', default: 0 })
-  retryCount?: number;
+  retryCount!: number;
 
   @Column({ name: 'max_retries', type: 'int', default: 3 })
-  maxRetries?: number;
+  maxRetries!: number;
 
   @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
-  scheduledAt?: Date | null;
+  scheduledAt!: Date | null;
 
   @Column({
     type: 'enum',
     enum: JobInterval,
     nullable: true,
   })
-  interval?: JobInterval | null;
+  interval!: JobInterval | null;
 
   @Column({ name: 'last_run_at', type: 'timestamptz', nullable: true })
-  lastRunAt?: Date | null;
+  lastRunAt!: Date | null;
 
   @Column({ name: 'next_run_at', type: 'timestamptz', nullable: true })
-  nextRunAt?: Date | null;
+  nextRunAt!: Date | null;
 
   @Column({ name: 'started_at', type: 'timestamptz', nullable: true })
-  startedAt?: Date | null;
+  startedAt!: Date | null;
 
   @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
-  completedAt?: Date | null;
+  completedAt!: Date | null;
 
   @Column({ name: 'error_details', type: 'jsonb', nullable: true })
-  errorDetails?: Record<string, unknown> | null;
+  errorDetails!: Record<string, unknown> | null;
 
   @Column({ name: 'dependency_ids', type: 'uuid', array: true, default: [] })
-  dependencyIds?: string[];
+  dependencyIds!: string[];
 
   @Column({ name: 'is_dlq', type: 'boolean', default: false })
-  isDlq?: boolean;
+  isDlq!: boolean;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
-  createdAt?: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' })
-  updatedAt?: Date;  
+  updatedAt!: Date;  
 }

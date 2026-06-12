@@ -1,0 +1,41 @@
+@base = http://localhost:3000
+
+
+### 1
+POST {{base}}/jobs
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 3,
+  "payload": {
+    "to": "low@test.com",
+    "subject": "Low priority"
+  }
+}
+
+### 2
+POST {{base}}/jobs
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 1,
+  "payload": {
+    "to": "high@test.com",
+    "subject": "High priority"
+  }
+}
+
+### 3
+POST {{base}}/jobs
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 2,
+  "payload": {
+    "to": "medium@test.com",
+    "subject": "Medium priority"
+  }
+}
