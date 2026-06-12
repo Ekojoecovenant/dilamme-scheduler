@@ -1,0 +1,30 @@
+[
+  {
+    "algorithm": "MinHeap",
+    "jobCount": 1000,
+    "insertTimeMs": 3.144,
+    "retrievalTimeMs": 18.843,
+    "memoryBytes": 373760
+  },
+  {
+    "algorithm": "TimingWheel",
+    "jobCount": 1000,
+    "insertTimeMs": 1.47,
+    "retrievalTimeMs": 0.191,
+    "memoryBytes": 116528
+  },
+  {
+    "algorithm": "MinHeap",
+    "jobCount": 10000,
+    "insertTimeMs": 11.688,
+    "retrievalTimeMs": 21.637,
+    "memoryBytes": 664480
+  },
+  {
+    "algorithm": "TimingWheel",
+    "jobCount": 10000,
+    "insertTimeMs": 6.812,
+    "retrievalTimeMs": 0.05,
+    "memoryBytes": 979000
+  }
+]
