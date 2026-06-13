@@ -43,7 +43,7 @@ import { SchedulerModule } from './scheduler/scheduler.module';
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: process.env.NODE_ENV !== 'production',
-        logging: process.env.NODE_ENV === 'production',
+        logging: process.env.NODE_ENV !== 'production',
       }),
     }),
     EventsModule,
