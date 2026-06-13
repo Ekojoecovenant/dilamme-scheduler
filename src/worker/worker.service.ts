@@ -237,7 +237,10 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
         lastAttempt: new Date().toISOString(),
       };
 
-      await this.jobRepo.save(job);
+      const saved = await this.jobRepo.save(job);
+
+      // re-enqueue into scheduler heap for retry
+      this.schedulerService.forceEnqueue(saved);
 
       this.eventsService.emit({
         jobId: job.id,
@@ -266,7 +269,10 @@ export class WorkerService implements OnApplicationBootstrap, OnApplicationShutd
       nextRunAt: nextRun,
     });
 
-    await this.jobRepo.save(nextJob);
+    const savedNext = await this.jobRepo.save(nextJob);
+
+    // enqueue the next recurrence into the scheduler heap
+    this.schedulerService.enqueue(savedNext);
 
     this.logger.info(
       {

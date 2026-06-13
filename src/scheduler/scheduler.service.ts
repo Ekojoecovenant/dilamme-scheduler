@@ -95,6 +95,13 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
     return this.heap.size;
   }
 
+  forceEnqueue(job: Job): void {
+    // remove from loadedIds so enqueue() accepts it again
+    this.loadedIds.delete(job.id);
+    this.futureJobIds.delete(job.id);
+    this.enqueue(job);
+  }
+
   private async loadPendingJobs(): Promise<void> {
     const jobs = await this.jobRepo.find({
       where: { status: JobStatus.PENDING, isDlq: false },
@@ -110,9 +117,9 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
     );
   }
 
-  private tick(): void {
+  private async tick(): Promise<void> {
     this.applyAgingToHeap();
-    this.promoteScheduledJobs();
+    await this.promoteScheduledJobs();
   }
 
   // starvation prevention - aging formula
@@ -153,9 +160,9 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
   }
 
   // push scheduled jobs into heap when their time arrives
-  private promoteScheduledJobs(): void {
+  private async promoteScheduledJobs(): Promise<void> {
     const now  = new Date();
-    this.checkFutureJobs(now);
+    await this.checkFutureJobs(now);
   }
 
   private async checkFutureJobs(now: Date): Promise<void> {
