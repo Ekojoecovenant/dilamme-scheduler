@@ -13,6 +13,12 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
 
+  // enable CORS for the React frontend
+  await app.register(require('@fastify/cors'), {
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+
   // swagger setup
   const config = new DocumentBuilder()
     .setTitle('Dilamme Scheduler API')

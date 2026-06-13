@@ -61,12 +61,15 @@ export class JobsService {
   ) {}
 
   async create(dto: CreateJobDto): Promise<Job> {
+    const now = new Date();
+    const scheduledAt = dto.scheduledAt ? new Date(dto.scheduledAt) : null;
+
     const job = this.jobRepo.create({
       type: dto.type,
       payload: dto.payload,
       priority: dto.priority ?? JobPriority.MEDIUM,
-      scheduledAt: dto.scheduledAt ?? null,
-      nextRunAt: dto.scheduledAt ?? null,
+      scheduledAt: scheduledAt,
+      nextRunAt: scheduledAt ?? null,
       interval: dto.interval ?? null,
       dependencyIds: dto.dependencyIds ?? [],
       status: JobStatus.PENDING,

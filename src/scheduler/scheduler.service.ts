@@ -13,6 +13,7 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
   private heap = new MinHeap<Job>();
   private timer: NodeJS.Timeout | null = null;
   private loadedIds = new Set<string>();
+  private futureJobIds = new Set<string>();
 
   constructor(
     @InjectRepository(Job)
@@ -36,16 +37,27 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
   // called by JobsService after create a new job
   enqueue(job: Job): void {
     if (this.loadedIds.has(job.id)) return;
-
-    // scheduled jobs only enter heap when their time is due
-    // we still track them so the tick can pick them up
     this.loadedIds.add(job.id);
 
-    if (!job.scheduledAt || job.scheduledAt <= new Date()) {
+    const now = new Date();
+    const isDue = !job.scheduledAt || job.scheduledAt <= now;
+
+    if (isDue) {
       this.heap.push(job);
       this.logger.debug(
         { event: 'heap_push', jobId: job.id, heapSize: this.heap.size },
         'job pushed to heap',
+      );
+    } else {
+      // track separately - will be promoted when due
+      this.futureJobIds.add(job.id);
+      this.logger.debug(
+        {
+          event: 'future_job_tracked',
+          jobId: job.id,
+          scheduledAt: job.scheduledAt,
+        },
+        'future job tracked, will promote when due',
       );
     }
   }
@@ -143,37 +155,26 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
   // push scheduled jobs into heap when their time arrives
   private promoteScheduledJobs(): void {
     const now  = new Date();
-    const jobs = this.heap.toArray();
-
-    for (const job of jobs) {
-      if (job.scheduledAt && job.scheduledAt > now) {
-        // not due yet - check if it just became due
-        if (job.nextRunAt && job.nextRunAt <= now) {
-          this.logger.debug(
-            { event: 'scheduled_job_due', jobId: job.id },
-            'scheduled job is now due',
-          );
-        }
-      }
-    }
-
-    // also check loadedIds for jobs not yet in heap
-    // (jobs with future scheduledAt that are now due)
     this.checkFutureJobs(now);
   }
 
   private async checkFutureJobs(now: Date): Promise<void> {
-    const dueSoon = await this.jobRepo.find({
-      where: { status: JobStatus.PENDING, isDlq: false },
-    });
+    if (this.futureJobIds.size === 0) return;
 
-    for (const job of dueSoon) {
-      if (!this.loadedIds.has(job.id)) {
-        const isDue = !job.nextRunAt || job.nextRunAt <= now;
-        if (isDue) {
-          this.enqueue(job);
-        }
-      }
+    const dueJobs = await this.jobRepo
+      .createQueryBuilder('job')
+      .where('job.id IN (:...ids)', { ids: [...this.futureJobIds] })
+      .andWhere('job.status = :status', { status: JobStatus.PENDING })
+      .andWhere('(job.next_run_at IS NULL OR job.next_run_at <= :now)', { now })
+      .getMany();
+
+    for (const job of dueJobs) {
+      this.futureJobIds.delete(job.id);
+      this.heap.push(job);
+      this.logger.info(
+        { event: 'scheduled_job_promoted', jobId: job.id, scheduledAt: job.scheduledAt },
+        'scheduled job promoted to heap — time is due',
+      );
     }
   }
 }
