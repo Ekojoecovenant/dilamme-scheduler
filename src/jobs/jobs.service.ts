@@ -4,13 +4,46 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { SchedulerService } from '../scheduler/scheduler.service';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export interface CreateJobDto {
-  type: string;
-  payload: Record<string, unknown>;
+export class CreateJobDto {
+  @ApiProperty({
+    example: 'send_email',
+    description: 'Job handler type',
+  })
+  type!: string;
+
+  @ApiProperty({
+    example: { to: 'test@gmail.com', subject: 'Welcome' },
+    description: 'Job payload — shape depends on job type',
+  })
+  payload!: Record<string, unknown>;
+
+  @ApiPropertyOptional({
+    example: 1,
+    description: '1=High, 2=Medium, 3=Low. Defaults to 2',
+    enum: [1, 2, 3],
+  })
   priority?: number;
+
+  @ApiPropertyOptional({
+    example: '2026-06-15T10:00:00Z',
+    description: 'ISO timestamp — job will not run before this time',
+  })
   scheduledAt?: Date;
+
+  @ApiPropertyOptional({
+    example: 'every_5_minutes',
+    enum: JobInterval,
+    description: 'Recurring interval — next run auto-schedules on completion',
+  })
   interval?: JobInterval;
+
+  @ApiPropertyOptional({
+    example: ['uuid-of-job-1', 'uuid-of-job-2'],
+    description: 'DAG dependencies — job will not run until all listed jobs are completed',
+    type: [String],
+  })
   dependencyIds?: string[];
 }
 
