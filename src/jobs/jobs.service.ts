@@ -188,4 +188,32 @@ export class JobsService {
 
     return completeDeps === dependencyIds.length;
   }
+
+  async getStats(): Promise<Record<string, number>> {
+    const result = await this.jobRepo
+      .createQueryBuilder('job')
+      .select('job.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('job.is_dlq = false')
+      .groupBy('job.status')
+      .getRawMany();
+    
+    const stats: Record<string, number> = {
+      pending: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0,
+      cancelled: 0,
+      dlq: 0,
+    };
+
+    for (const row of result) {
+      stats[row.status] = parseInt(row.count, 10);
+    }
+
+    // dlq count separately
+    stats.dlq = await this.jobRepo.count({ where: { isDlq: true } });
+
+    return stats;
+  }
 }

@@ -30,6 +30,12 @@ export class JobsController {
     return this.jobsService.findDlq();
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: 'Get job counts by status for dashboard' })
+  stats() {
+    return this.jobsService.getStats();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a single job by ID' })
   @ApiParam({ name: 'id', description: 'Job UUID' })

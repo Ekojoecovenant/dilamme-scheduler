@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Job } from '../jobs/job.entity';
 import { JobsModule } from '../jobs/jobs.module';
 import { WorkerModule } from '../worker/worker.module';
+import { SchedulerController } from './scheduler.controller';
 
 @Module({
   imports: [
@@ -11,6 +12,7 @@ import { WorkerModule } from '../worker/worker.module';
     forwardRef(() => JobsModule),
     forwardRef(() => WorkerModule),
   ],
+  controllers: [SchedulerController],
   providers: [SchedulerService],
   exports: [SchedulerService]
 })

@@ -23,8 +23,8 @@ export class SchedulerService implements OnApplicationBootstrap, OnApplicationSh
   ) {}
 
   async onApplicationBootstrap() {
-    // await this.loadPendingJobs();
-    // this.timer = setInterval(() => this.tick(), SCHEDULER_TICK_MS);
+    await this.loadPendingJobs();
+    this.timer = setInterval(() => this.tick(), SCHEDULER_TICK_MS);
     this.logger.info({ event: 'scheduler_started' }, 'heap scheduler started');
   }
 
