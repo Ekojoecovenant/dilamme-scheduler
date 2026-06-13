@@ -15,7 +15,12 @@ async function bootstrap() {
 
   // enable CORS for the React frontend
   await app.register(require('@fastify/cors'), {
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'https://scheduler.ekojoe.name.ng'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:3010',
+      'https://scheduler.ekojoe.name.ng',
+    ],
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   });
 
