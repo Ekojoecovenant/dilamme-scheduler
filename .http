@@ -43,7 +43,7 @@ Content-Type: application/json
 #### DAG WORKFLOW END-TO-END TEST
 
 ### 1 
-POST http://localhost:3000/jobs
+POST https://scheduler.ekojoe.name.ng/jobs
 Content-Type: application/json
 
 {
