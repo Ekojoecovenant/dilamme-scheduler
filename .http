@@ -39,3 +39,37 @@ Content-Type: application/json
     "subject": "Medium priority"
   }
 }
+
+#### DAG WORKFLOW END-TO-END TEST
+
+### 1 
+POST http://localhost:3000/jobs
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 1,
+  "payload": { "to": "report@test.com", "subject": "Generate Report" }
+}
+
+### 2 
+POST http://localhost:3000/jobs 
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 1,
+  "payload": { "to": "upload@test.com", "subject": "Upload File" },
+  "dependencyIds": ["0c6835fd-c01d-4ad4-8483-157ec344bdae"]
+}
+
+### 3 
+POST http://localhost:3000/jobs
+Content-Type: application/json
+
+{
+  "type": "send_email",
+  "priority": 1,
+  "payload": { "to": "notify@test.com", "subject": "Send Email" },
+  "dependencyIds": ["1857d151-bfeb-4bbc-8985-f3b04ac1c818"]
+}
