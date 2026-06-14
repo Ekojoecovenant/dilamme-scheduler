@@ -1,98 +1,135 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Dilamme Scheduler
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A production-grade background job scheduler built with NestJS (Fastify), PostgreSQL, and React. Ships with a heap-based priority queue, DAG workflow support, automatic retries, recurring jobs, dead-letter queue, and live SSE updates.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Built as a learning project during HNG14 Stage 9.
 
-## Description
+**Live Demo:** <https://scheduler.ekojoe.name.ng>
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**API:** <https://scheduler-api.ekojoe.name.ng>
 
-## Project setup
+**API Docs:** <https://scheduler-api.ekojoe.name.ng/api/docs>
 
-```bash
-$ pnpm install
-```
+---
 
-## Compile and run the project
+## What it does
 
-```bash
-# development
-$ pnpm run start
+- Creates and processes background jobs with three priority levels (High, Medium, Low)
+- Schedules jobs for future execution — jobs only run when their time arrives
+- Supports recurring jobs that automatically re-schedule themselves after completion
+- Chains jobs into DAG workflows — a job waits for all its dependencies to complete before running
+- Retries failed jobs up to 3 times with exponential backoff and jitter (~1s, ~5s, ~25s)
+- Moves exhausted jobs to a dead-letter queue with full error details visible in the UI
+- Fires an alert when the DLQ crosses 10 entries
+- Prevents low-priority job starvation — the longer a job waits, the higher its effective priority becomes
+- Streams live status updates to the UI via Server-Sent Events — no page refresh needed
+- Guarantees no two workers can claim the same job simultaneously via SELECT FOR UPDATE SKIP LOCKED
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
-```
+## Tech stack
 
-## Run tests
+**Backend:** NestJS (Fastify adapter), TypeScript, TypeORM, PostgreSQL, pino
 
-```bash
-# unit tests
-$ pnpm run test
+**Frontend:** React, Vite, TypeScript
 
-# e2e tests
-$ pnpm run test:e2e
+**Infrastructure:** Ubuntu VPS, Nginx, pm2, Let's Encrypt
 
-# test coverage
-$ pnpm run test:cov
-```
+---
 
-## Deployment
+## Architecture highlights
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+**Heap-based priority queue** — jobs are ordered by priority, then scheduled time, then creation time. Implemented from scratch as a generic MinHeap class with full test coverage.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+**Timing wheel** — a second scheduling algorithm implemented for comparison. Benchmarked against the heap at 1k and 10k jobs. Results in benchmark-results.json.
+
+**DAG engine** — jobs declare dependencies via a uuid[] column. The worker checks all dependencies are completed before claiming a job.
+
+**Starvation prevention** — every 30 seconds a waiting job's effective priority improves by one level. Documented threshold, documented formula.
+
+**Dead-letter queue** — failed jobs after 3 attempts are flagged in-place (isDlq = true) rather than moved to a separate table. Engineers can inspect error details and trigger manual retries from the UI.
+
+---
+
+## Running locally
+
+**Prerequisites:** Node.js 18+, pnpm, PostgreSQL
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# clone the repo
+git clone https://github.com/ekojoecovenant/dilamme-scheduler.git
+cd dilamme-scheduler
+
+# install dependencies
+pnpm install
+
+# create environment file
+cp .env.example .env
+# fill in your DB credentials
+
+# start in development mode
+pnpm run start:dev
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+The API will be available at <http://localhost:3000>
 
-## Resources
+API docs at <http://localhost:3000/api/docs>
 
-Check out a few resources that may come in handy when working with NestJS:
+**Frontend:**
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```bash
+cd dilamme-ui
+pnpm install
+pnpm run dev
+```
 
-## Support
+UI will be available at <http://localhost:5173>
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+---
 
-## Stay in touch
+## Environment variables
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```plain
+NODE_ENV=development
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=your_password
+DB_NAME=dilamme_scheduler
+```
 
-## License
+---
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+## Project structure
+
+```plain
+dilamme-scheduler/
+├── src/
+│   ├── jobs/           # Job entity, service, controller
+│   ├── scheduler/      # MinHeap, TimingWheel, SchedulerService
+│   ├── worker/         # WorkerService — polling, execution, retry
+│   └── events/         # SSE stream
+├── benchmark-results.json
+└── ARCHITECTURE.md     # Full system design doc
+```
+
+---
+
+## Benchmark results
+
+| Algorithm   | Jobs   | Insert  | Retrieval | Memory  |
+| ----------- | ------ | ------- | --------- | ------- |
+| MinHeap     | 1,000  | 3.1ms   | 18.8ms    | 365KB   |
+| TimingWheel | 1,000  | 1.5ms   | 0.2ms     | 114KB   |
+| MinHeap     | 10,000 | 11.7ms  | 21.6ms    | 649KB   |
+| TimingWheel | 10,000 | 6.8ms   | 0.05ms    | 956KB   |
+
+The timing wheel wins on retrieval speed but cannot guarantee priority ordering within a time slot. The heap is used as the primary scheduler for this reason.
+
+---
+
+## Author
+
+Ekojoe Covenant Lemom — Backend Engineer
+
+<https://ekojoe.name.ng>
