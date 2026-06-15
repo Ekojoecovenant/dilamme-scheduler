@@ -93,10 +93,19 @@ export class JobsService {
     return saved;
   }
 
-  async findAll(): Promise<Job[]> {
-    return this.jobRepo.find({
+  async findAll(page = 1, limit = 50): Promise<{ data: Job[]; total: number; page: number, totalPages: number }> {
+    const [data, total] = await this.jobRepo.findAndCount({
       order: { createdAt: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
     });
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    }
   }
 
   async findOne(id: string): Promise<Job> {

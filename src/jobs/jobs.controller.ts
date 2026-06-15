@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, Query } from '@nestjs/common';
 import { type CreateJobDto, JobsService } from './jobs.service';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
@@ -17,10 +17,13 @@ export class JobsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all jobs' })
-  @ApiResponse({ status: 200, description: 'Array of all jobs ordered by createdAt DESC' })
-  findAll() {
-    return this.jobsService.findAll();
+  @ApiOperation({ summary: 'List all jobs with pagination' })
+  @ApiResponse({ status: 200, description: 'Paginated jobs list' })
+  findAll(
+    @Query('page') page = 1,
+    @Query('limit') limit = 50,
+  ) {
+    return this.jobsService.findAll(Number(page), Number(limit));
   }
 
   @Get('dlq')
